@@ -2,6 +2,7 @@ from time import sleep
 from os import system
 import keyboard
 import platform
+import random
 
 
 frame = width, height = 25, 10
@@ -15,12 +16,29 @@ def clear():
         return system('cls')
 
 
+def food_spawn() -> None:
+    food = [
+        random.randrange(1, frame[0] + 1),
+        random.randrange(1, frame[1] + 1),
+    ]
+
+    return food
+
+
+def food_respawn() -> None:
+    global apple_position, apple_spawn
+
+    apple_position = food_spawn()
+    apple_spawn = True
+
+
 def initialize() -> None:
-    global snake_head_position, direction
+    global snake_head_position, direction, apple_spawn, apple_position
 
     snake_head_position = [frame[0] // 4, frame[1] // 2]
     direction = 'RIGHT'
-
+    apple_spawn = True
+    apple_position = food_spawn()
 
 initialize()
 
@@ -51,6 +69,8 @@ def draw_field(field: list, frame: tuple) -> None:
                 snake_head_position[1] != 0 and snake_head_position[0] != 0 and
                 snake_head_position[1] != frame[1] + 2 and snake_head_position[0] != frame[0] + 2):
                 char = '■'
+            elif apple_position[1] == height and apple_position[0] == width:
+                char = '@'
             else:
                 char = field[height][width]
             
@@ -60,7 +80,7 @@ def draw_field(field: list, frame: tuple) -> None:
 
 
 def controls() -> None:
-    global direction
+    global direction, apple_spawn
 
     if (keyboard.is_pressed('w') or keyboard.is_pressed('UP')) and direction != 'DOWN':
         direction = 'UP'
@@ -71,10 +91,10 @@ def controls() -> None:
     if (keyboard.is_pressed('a') or keyboard.is_pressed('LEFT')) and direction != 'RIGHT':
         direction = 'LEFT'
 
-    moving_on_field(direction, frame)
+    moving_on_field(direction, apple_spawn, frame)
 
 
-def moving_on_field(direction: str, frame_size: tuple) -> None:
+def moving_on_field(direction: str, apple_spawn: bool, frame_size: tuple) -> None:
     if direction == 'UP':
         snake_head_position[1] -= moving
     elif direction == 'RIGHT':
@@ -92,6 +112,13 @@ def moving_on_field(direction: str, frame_size: tuple) -> None:
         snake_head_position[1] = 0
     elif snake_head_position[0] < 0:
         snake_head_position[0] = frame_size[0]
+
+    if apple_position[1] == snake_head_position[1] and apple_position[0] == snake_head_position[0]:
+        apple_spawn = False
+    
+    if not apple_spawn:
+        food_respawn()
+
 
 
 def main():
