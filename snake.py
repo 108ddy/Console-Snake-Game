@@ -1,5 +1,6 @@
 from time import sleep
 from os import system
+from sys import exit
 import keyboard
 import platform
 import random
@@ -11,10 +12,7 @@ score = 0
 
 
 def clear():
-    if platform.system() == 'Linux':
-        return system('clear')
-    else:
-        return system('cls')
+    return system('clear') if platform.system() == 'Linux' else system('cls')
 
 
 def food_spawn() -> None:
@@ -42,6 +40,7 @@ def initialize() -> None:
     direction = 'RIGHT'
     apple_spawn = True
     apple_position = food_spawn()
+
 
 initialize()
 
@@ -87,7 +86,9 @@ def draw_field(field: list, frame: tuple) -> None:
         
         print()
     
-    print(f'Score: {score}')
+    print('=' * (frame[0] + 2))
+    print(f'# Score: {score:{frame[0] - 9}} #')
+    print('=' * (frame[0] + 2))
 
 
 def snake_increase() -> None:
@@ -165,13 +166,25 @@ def moving_on_field(direction: str, frame_size: tuple) -> None:
         food_respawn()
 
 
+def game_over():
+    return (
+        snake_head in snake_position[:-3] or keyboard.is_pressed('Esc') or score > 9999999999999999
+    )
+
+
 def main():
     field = create_field(frame)
 
-    while True:
-        controls()
-        draw_field(field, frame)
-        sleep(.2)
+    try:
+        while True:
+            controls()
+            draw_field(field, frame)
+            sleep(.2)
 
+            if game_over():
+                exit()
+    except KeyboardInterrupt:
+        exit()
+        
 
 main()
