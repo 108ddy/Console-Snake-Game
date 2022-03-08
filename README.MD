@@ -18,4 +18,4 @@ python snake.py
 ```
 
 ### Controls
-Using keyboards: a w d s | ← ↑ → ↓
+Using keyboards: a w d s or ← ↑ → ↓
