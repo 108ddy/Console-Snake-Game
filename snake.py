@@ -7,32 +7,11 @@ import random
 
 
 frame = width, height = 25, 10
-moving = 1
 score = 0
 
 
-def clear():
-    return system('clear') if platform.system() == 'Linux' else system('cls')
-
-
-def food_spawn() -> None:
-    food = [
-        random.randrange(1, frame[0] + 1),
-        random.randrange(1, frame[1] + 1),
-    ]
-
-    return food
-
-
-def food_respawn() -> None:
-    global apple_position, apple_spawn
-
-    apple_position = food_spawn()
-    apple_spawn = True
-
-
 def initialize() -> None:
-    global snake_position, snake_head, direction, apple_spawn, apple_position
+    global snake_position, direction, apple_spawn, apple_position
     
     snake_position = [
         [frame[0] // 4, frame[1] // 2],
@@ -40,6 +19,22 @@ def initialize() -> None:
     direction = 'RIGHT'
     apple_spawn = True
     apple_position = food_spawn()
+
+
+def food_spawn() -> None:
+    return [
+        random.randrange(1, frame[0] + 1),
+        random.randrange(1, frame[1] + 1),
+    ]
+
+
+def food_respawn() -> None:
+    global apple_position, apple_spawn
+
+    while apple_position in snake_position:
+        apple_position = food_spawn()
+
+    apple_spawn = True
 
 
 initialize()
@@ -69,7 +64,7 @@ def draw_field(field: list, frame: tuple) -> None:
         for width in range(frame[0] + 2):
             if snake_head == [width, height]:
                 char = '◆'
-            elif apple_position == [width, height] and apple_position not in snake_position:
+            elif apple_position == [width, height]:
                 char = '@'
             else:
                 prints = False
@@ -91,24 +86,17 @@ def draw_field(field: list, frame: tuple) -> None:
     print('=' * (frame[0] + 2))
 
 
-def snake_increase() -> None:
-    tail = snake_head[:]
+def field_limit(position: list, frame_size: tuple) -> list:
+    if position[1] < 1:
+        position[1] = frame_size[1]
+    elif position[0] > frame_size[0]:
+        position[0] = 1
+    elif position[1] > frame_size[1]:
+        position[1] = 1
+    elif position[0] < 1:
+        position[0] = frame_size[0]
 
-    if len(snake_position) > 1:
-        a, b = snake_position[0], snake_position[1]
-        tail = a[:]
-    
-        if a[1] < b[1]:
-            tail[1] -= 1
-        elif a[0] > b[0]:
-            tail[0] += 1
-        elif a[1] > b[1]:
-            tail[1] += 1
-        elif a[0] < b[0]:
-            tail[0] -= 1
-
-    tail = field_limit(tail, frame)
-    snake_position.insert(0, tail)
+    return position
 
 
 def controls() -> None:
@@ -126,32 +114,19 @@ def controls() -> None:
     moving_on_field(direction, frame)
 
 
-def field_limit(position: list, frame_size: tuple) -> list:
-    if position[1] < 1:
-        position[1] = frame_size[1]
-    elif position[0] > frame_size[0]:
-        position[0] = 1
-    elif position[1] > frame_size[1]:
-        position[1] = 1
-    elif position[0] < 1:
-        position[0] = frame_size[0]
-
-    return position
-
-
 def moving_on_field(direction: str, frame_size: tuple) -> None:
     global snake_head, snake_position, apple_spawn, score
      
     snake_head = snake_position[-1][:]
 
     if direction == 'UP':
-        snake_head[1] -= moving
+        snake_head[1] -= 1
     elif direction == 'RIGHT':
-        snake_head[0] += moving
+        snake_head[0] += 1
     elif direction == 'DOWN':
-        snake_head[1] += moving
+        snake_head[1] += 1
     elif direction == 'LEFT':
-        snake_head[0] -= moving
+        snake_head[0] -= 1
 
     snake_head = field_limit(snake_head, frame_size)
     del(snake_position[0])
@@ -166,10 +141,34 @@ def moving_on_field(direction: str, frame_size: tuple) -> None:
         food_respawn()
 
 
+def snake_increase() -> None:
+    tail = snake_head[:]
+
+    if len(snake_position) > 1:
+        prev, next_prev = snake_position[0], snake_position[1]
+        tail = prev[:]
+    
+        if prev[1] < next_prev[1]:
+            tail[1] -= 1
+        elif prev[0] > next_prev[0]:
+            tail[0] += 1
+        elif prev[1] > next_prev[1]:
+            tail[1] += 1
+        elif prev[0] < next_prev[0]:
+            tail[0] -= 1
+
+    tail = field_limit(tail, frame)
+    snake_position.insert(0, tail)
+
+
 def game_over():
     return (
         snake_head in snake_position[:-3] or keyboard.is_pressed('Esc') or score > 9999999999999999
     )
+
+
+def clear():
+    return system('clear') if platform.system() == 'Linux' else system('cls')
 
 
 def main():
@@ -187,4 +186,5 @@ def main():
         exit()
         
 
-main()
+if __name__ == '__main__':
+    main()
