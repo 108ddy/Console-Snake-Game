@@ -6,185 +6,183 @@ import platform
 import random
 
 
-frame = width, height = 25, 10
-score = 0
+class Field(object):
+    def __init__(self, frame) -> None:
+        self.frame = frame
+        self.field = self.create_field()
+        self.snake_position = [
+            [self.frame[0] // 4, self.frame[1] // 2],
+        ]
+        self.apple_position = self.food_spawn()
+        self.score = 0
 
 
-def initialize() -> None:
-    global snake_position, direction, apple_spawn, apple_position
+    def create_field(self) -> list:
+        field = [[]]
+
+        for height in range(self.frame[1] + 2):
+            field.append([])
+
+            for width in range(self.frame[0] + 2):
+                if height == 0 or width == 0 or height == self.frame[1] + 1 or width == self.frame[0] + 1:
+                    self.char = '#'
+                else:
+                    self.char = ' '
+
+                field[height].append(self.char)
+
+        return field
+
+
+    def draw_field(self) -> None:
+        self.clear()
+
+        for height in range(self.frame[1] + 2):
+            for width in range(self.frame[0] + 2):
+                if self.snake_position == [width, height]:
+                    self.char = '◆'
+                elif self.apple_position == [width, height]:
+                    self.char = '@'
+                else:
+                    is_tail = False
+
+                    for tail in self.snake_position:
+                        if tail == [width, height]:
+                            self.char = '◆'
+                            is_tail = True
+
+                    if not is_tail:
+                        self.char = self.field[height][width]
+
+                print(self.char, end = '')
+
+            print()
+
+        self.draw_score()
+
+
+    def food_spawn(self) -> list:
+        return [
+            random.randrange(1, self.frame[0] + 1),
+            random.randrange(1, self.frame[1] + 1),
+        ]
+
+
+    def clear(self) -> int:
+        return system('clear') if platform.system() == 'Linux' else system('cls')
+
+
+    def draw_score(self) -> None:
+        print('=' * (self.frame[0] + 2))
+        print(f'# Score: {self.score:{self.frame[0] - 9}} #')
+        print('=' * (self.frame[0] + 2))
+
+
+class Snake(object):
+    def __init__(self, field: Field) -> None:
+        self.field = field
+        self.apple_spawn = True
+        self.direction = 'RIGHT'
+
+    def controls(self) -> None:
+        if (keyboard.is_pressed('w') or keyboard.is_pressed('UP')) and self.direction != 'DOWN':
+            self.direction = 'UP'
+        elif (keyboard.is_pressed('d') or keyboard.is_pressed('RIGHT')) and self.direction != 'LEFT':
+            self.direction = 'RIGHT'
+        elif (keyboard.is_pressed('s') or keyboard.is_pressed('DOWN')) and self.direction != 'UP':
+            self.direction = 'DOWN'
+        elif (keyboard.is_pressed('a') or keyboard.is_pressed('LEFT')) and self.direction != 'RIGHT':
+            self.direction = 'LEFT'
+
+        self.moving_on_field()
     
-    snake_position = [
-        [frame[0] // 4, frame[1] // 2],
-    ]
-    direction = 'RIGHT'
-    apple_spawn = True
-    apple_position = food_spawn()
+
+    def moving_on_field(self) -> None:
+        self.snake_head = self.field.snake_position[-1][:]
+
+        if self.direction == 'UP':
+            self.snake_head[1] -= 1
+        elif self.direction == 'RIGHT':
+            self.snake_head[0] += 1
+        elif self.direction == 'DOWN':
+            self.snake_head[1] += 1
+        elif self.direction == 'LEFT':
+            self.snake_head[0] -= 1
+
+        self.snake_head = self.field_limit(self.snake_head)
+        del(self.field.snake_position[0])
+        self.field.snake_position.append(self.snake_head)
+
+        if self.field.apple_position == self.snake_head:
+            self.apple_spawn = False
+            self.field.score += 1
+            self.snake_increase()
+
+        if not self.apple_spawn:
+            self.food_respawn()
 
 
-def food_spawn() -> None:
-    return [
-        random.randrange(1, frame[0] + 1),
-        random.randrange(1, frame[1] + 1),
-    ]
+    def field_limit(self, position: list) -> list:
+        if position[1] < 1:
+            position[1] = self.field.frame[1]
+        elif position[0] > self.field.frame[0]:
+            position[0] = 1
+        elif position[1] > self.field.frame[1]:
+            position[1] = 1
+        elif position[0] < 1:
+            position[0] = self.field.frame[0]
+
+        return position
+
+    def snake_increase(self) -> None:
+        tail = self.snake_head[:]
+
+        if len(self.field.snake_position) > 1:
+            prev, next_prev = self.field.snake_position[0], self.field.snake_position[1]
+            tail = prev[:]
+
+            if prev[1] < next_prev[1]:
+                tail[1] -= 1
+            elif prev[0] > next_prev[0]:
+                tail[0] += 1
+            elif prev[1] > next_prev[1]:
+                tail[1] += 1
+            elif prev[0] < next_prev[0]:
+                tail[0] -= 1
+
+        tail = self.field_limit(tail)
+        self.field.snake_position.insert(0, tail)
 
 
-def food_respawn() -> None:
-    global apple_position, apple_spawn
+    def food_respawn(self) -> None:
+        while self.field.apple_position in self.field.snake_position:
+            self.field.apple_position = self.field.food_spawn()
 
-    while apple_position in snake_position:
-        apple_position = food_spawn()
-
-    apple_spawn = True
+        self.apple_spawn = True
 
 
-initialize()
-
-
-def create_field(frame: tuple) -> list:
-    field = [[]]
-    
-    for height in range(frame[1] + 2):
-        field.append([])
-        
-        for width in range(frame[0] + 2):
-            if height == 0 or width == 0 or height == frame[1] + 1 or width == frame[0] + 1:
-                char = '#'
-            else:
-                char = ' '
-
-            field[height].append(char)
-
-    return field
-
-
-def draw_field(field: list, frame: tuple) -> None:
-    clear()
-    
-    for height in range(frame[1] + 2):
-        for width in range(frame[0] + 2):
-            if snake_head == [width, height]:
-                char = '◆'
-            elif apple_position == [width, height]:
-                char = '@'
-            else:
-                prints = False
-
-                for tail in snake_position:
-                    if tail == [width, height]:
-                        char = '◆'
-                        prints = True
-                
-                if not prints: 
-                    char = field[height][width]
-            
-            print(char, end = '')
-        
-        print()
-    
-    print('=' * (frame[0] + 2))
-    print(f'# Score: {score:{frame[0] - 9}} #')
-    print('=' * (frame[0] + 2))
-
-
-def field_limit(position: list, frame_size: tuple) -> list:
-    if position[1] < 1:
-        position[1] = frame_size[1]
-    elif position[0] > frame_size[0]:
-        position[0] = 1
-    elif position[1] > frame_size[1]:
-        position[1] = 1
-    elif position[0] < 1:
-        position[0] = frame_size[0]
-
-    return position
-
-
-def controls() -> None:
-    global direction 
-    
-    if (keyboard.is_pressed('w') or keyboard.is_pressed('UP')) and direction != 'DOWN':
-        direction = 'UP'
-    elif (keyboard.is_pressed('d') or keyboard.is_pressed('RIGHT')) and direction != 'LEFT':
-        direction = 'RIGHT'
-    elif (keyboard.is_pressed('s') or keyboard.is_pressed('DOWN')) and direction != 'UP':
-        direction = 'DOWN'
-    elif (keyboard.is_pressed('a') or keyboard.is_pressed('LEFT')) and direction != 'RIGHT':
-        direction = 'LEFT'
-
-    moving_on_field(direction, frame)
-
-
-def moving_on_field(direction: str, frame_size: tuple) -> None:
-    global snake_head, snake_position, apple_spawn, score
-     
-    snake_head = snake_position[-1][:]
-
-    if direction == 'UP':
-        snake_head[1] -= 1
-    elif direction == 'RIGHT':
-        snake_head[0] += 1
-    elif direction == 'DOWN':
-        snake_head[1] += 1
-    elif direction == 'LEFT':
-        snake_head[0] -= 1
-
-    snake_head = field_limit(snake_head, frame_size)
-    del(snake_position[0])
-    snake_position.append(snake_head)
-
-    if apple_position == snake_head:
-        apple_spawn = False
-        score += 1
-        snake_increase()
-
-    if not apple_spawn:
-        food_respawn()
-
-
-def snake_increase() -> None:
-    tail = snake_head[:]
-
-    if len(snake_position) > 1:
-        prev, next_prev = snake_position[0], snake_position[1]
-        tail = prev[:]
-    
-        if prev[1] < next_prev[1]:
-            tail[1] -= 1
-        elif prev[0] > next_prev[0]:
-            tail[0] += 1
-        elif prev[1] > next_prev[1]:
-            tail[1] += 1
-        elif prev[0] < next_prev[0]:
-            tail[0] -= 1
-
-    tail = field_limit(tail, frame)
-    snake_position.insert(0, tail)
-
-
-def game_over():
-    return (
-        snake_head in snake_position[:-3] or keyboard.is_pressed('Esc') or score > 9999999999999999
-    )
-
-
-def clear():
-    return system('clear') if platform.system() == 'Linux' else system('cls')
+    def game_over(self) -> bool:
+        return (
+            self.snake_head in self.field.snake_position[:-3] or keyboard.is_pressed('Esc') or self.field.score > 9999999999999999
+        )
 
 
 def main():
-    field = create_field(frame)
+    frame = 25, 10
+    field = Field(frame)
+    snake = Snake(field)
 
     try:
         while True:
-            controls()
-            draw_field(field, frame)
+            snake.controls()
+            field.draw_field()
             sleep(.2)
 
-            if game_over():
+            if snake.game_over():
                 exit()
     except KeyboardInterrupt:
         exit()
-        
+
 
 if __name__ == '__main__':
     main()
