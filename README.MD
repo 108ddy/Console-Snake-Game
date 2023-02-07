@@ -8,7 +8,7 @@ A simple console snake game in python.
 
 * install python
 
-* install packets
+* install packages
 ```python
 pip install -r requirements.txt
 ```
